@@ -57,13 +57,17 @@ unknown_cla_re = re.compile(r"Unknown command line argument")
 
 
 def read_report(options: Options) -> CovData:
-    datafiles = set()
+    datafiles = [set()]
 
-    find_files = find_datafiles
-    process_file = process_datafile
+    find_files = [find_datafiles]
+    process_file = [process_datafile]
     if options.gcov_files:
-        find_files = find_existing_gcov_files
-        process_file = process_existing_gcov_file
+        find_files = [find_existing_gcov_files]
+        process_file = [process_existing_gcov_file]
+    elif options.gcov_add_files:
+        find_files.append(find_existing_gcov_files)
+        process_file.append(process_existing_gcov_file)
+        datafiles.append(set())
 
     # Get data files
     if not options.search_paths:
@@ -72,8 +76,9 @@ def read_report(options: Options) -> CovData:
         if options.gcov_objdir is not None:
             options.search_paths.append(options.gcov_objdir)
 
-    for search_path in options.search_paths:
-        datafiles.update(find_files(search_path, options.gcov_exclude_dirs))
+    for i in range(len(find_files)):
+        for search_path in options.search_paths:
+            datafiles[i].update(find_files[i](search_path, options.gcov_exclude_dirs))
 
     # Get coverage data
     with Workers(
@@ -81,8 +86,9 @@ def read_report(options: Options) -> CovData:
         lambda: {"covdata": dict(), "toerase": set(), "options": options},
     ) as pool:
         LOGGER.debug(f"Pool started with {pool.size()} threads")
-        for file_ in datafiles:
-            pool.add(process_file, file_)
+        for i in range(len(datafiles)):
+            for file_ in datafiles[i]:
+                pool.add(process_file[i], file_)
         contexts = pool.wait()
 
     toerase = set()

@@ -55,6 +55,13 @@ class GcovHandler(BaseHandler):
                 action="store_true",
             ),
             GcovrConfigOption(
+                "gcov_add_files",
+                ["--gcov-add-existing-files"],
+                group="gcov_options",
+                help="Combine existing gcov files into analysis.",
+                action="store_true",
+            ),
+            GcovrConfigOption(
                 "gcov_ignore_errors",
                 ["--gcov-ignore-errors"],
                 group="gcov_options",
